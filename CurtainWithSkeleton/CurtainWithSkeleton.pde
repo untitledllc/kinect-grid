@@ -36,6 +36,8 @@ final int curtainTearSensitivity = 100; // distance the particles have to go bef
 final int maxLenth = 10;
 final int scrWidth = 1024;
 final int scrHeight = 768;
+PVector position = new PVector();
+PVector screenPos = new PVector();
 
 XnSkeletonJointPosition jointPos;// = new XnSkeletonJointPosition();
 
@@ -154,7 +156,15 @@ void draw()
   context.update();
   
   // draw depthImageMap
-  image(context.depthImage(),0,0, scrWidth, scrHeight);
+  //image(context.depthImage(),0,0, scrWidth, scrHeight);
+/*  IntVector users = new IntVector();
+  context.getUsers(users);
+  if (users.size()>0){
+    int[] userSceneData;
+    context.getUserPixels(users.get(0), userSceneData);
+    image(context.depthImage(userSceneData),0,0, scrWidth, scrHeight);
+  }else*/
+    image(context.depthImage(),0,0, scrWidth, scrHeight);
   
   // draw the skeleton if it's available
   if(context.isTrackingSkeleton(1))
@@ -234,7 +244,7 @@ void drawSkeleton(int userId)
   context.getJointPositionSkeleton(userId,SimpleOpenNI.SKEL_NECK,jointPos);
   println(jointPos);
   */
-  stroke(255,0,0);
+/*  
   context.drawLimb(userId, SimpleOpenNI.SKEL_HEAD, SimpleOpenNI.SKEL_NECK);
 
   context.drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_LEFT_SHOULDER);
@@ -244,16 +254,18 @@ void drawSkeleton(int userId)
   context.drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_RIGHT_SHOULDER);
   context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, SimpleOpenNI.SKEL_RIGHT_ELBOW);
   context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_ELBOW, SimpleOpenNI.SKEL_RIGHT_HAND);
- 
-  if(context.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_RIGHT_HAND, jointPos)){
+ */
+  if(context.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_LEFT_HAND, jointPos)){
     strokeWeight(10);
-    //translate(width/2,height/2);
-    mouseX = (int)jointPos.getPosition().getX();//*scrWidth/640;
-    mouseY = (int)jointPos.getPosition().getY();//*scrHeight/480;
+    stroke(255,0,0);
+    position.set(jointPos.getPosition().getX(),jointPos.getPosition().getY(),jointPos.getPosition().getZ());
+    context.convertRealWorldToProjective(position,screenPos);
+    mouseX = (int)screenPos.x*scrWidth/640;
+    mouseY = (int)screenPos.y*scrHeight/480;
     point(mouseX, mouseY);
     strokeWeight(1);
   }
-
+/*
   context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, SimpleOpenNI.SKEL_TORSO);
   context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, SimpleOpenNI.SKEL_TORSO);
 
@@ -264,6 +276,8 @@ void drawSkeleton(int userId)
   context.drawLimb(userId, SimpleOpenNI.SKEL_TORSO, SimpleOpenNI.SKEL_RIGHT_HIP);
   context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_HIP, SimpleOpenNI.SKEL_RIGHT_KNEE);
   context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_KNEE, SimpleOpenNI.SKEL_RIGHT_FOOT);  
+  
+  */
 }
 
 // -----------------------------------------------------------------
