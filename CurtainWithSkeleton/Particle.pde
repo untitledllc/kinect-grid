@@ -57,15 +57,29 @@ class Particle {
   
   void updateInteractions () {
     // this is where our interaction comes in.
-    if (true){//mousePressed) {
-      float distanceSquared = sq(mouseX-width/2 - position.x) + sq(mouseY-height/2 - position.y);
+    int curX;
+    int curY;
+    int prevX;
+    int prevY;
+    for (int idx = 0; idx < handPoints.size(); idx++){
+      curX = (int) handPoints.get(idx).getCurPos().x;
+      curY = (int) handPoints.get(idx).getCurPos().y;
+      if ( handPoints.get(idx).getPrevPos() != null){
+        prevX = (int) handPoints.get(idx).getPrevPos().x;
+        prevY = (int) handPoints.get(idx).getPrevPos().y;
+      }else{
+        prevX = curX;
+        prevY = curY;
+      }
+      
+      float distanceSquared = sq(curX-width/2 - position.x) + sq(curY-height/2 - position.y);
       if (true){//mouseButton == LEFT) {
         if (distanceSquared < mouseInfluenceSize) { // remember mouseInfluenceSize was squared in setup()
           // move particles towards where the mouse is moving
           // amount to add onto the particle position:
           
-          int xDiff = mouseX - pmouseX;
-          int yDiff = mouseY - pmouseY;
+          int xDiff = curX - prevX;
+          int yDiff = curY - prevY;
      //     if (Math.abs(xDiff) > maxLenth) xDiff = sign(xDiff) * maxLenth;
      //     if (Math.abs(yDiff) > maxLenth) yDiff = sign(yDiff) * maxLenth;
 
