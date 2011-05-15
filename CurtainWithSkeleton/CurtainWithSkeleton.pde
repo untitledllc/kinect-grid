@@ -69,10 +69,20 @@ final int instructionFade = 300;
 // Create the fullscreen object
 FullScreen fs;
 
+
+//////////////////ParticleDrower interface 
+public static interface ParticleDrower {
+  void updatePhysics(Particle particle, float timeStep);
+  void updateInteractions(Particle particle);
+  void solveConstraints(Particle particle);
+  void draw (Particle particle);
+}
+
+private ParticleDrower particleDrower;// = new DefaultParticleDrower();
+
+///////////////////////// Setup //////////////////
 void setup()
 {
-
-
   fs = new FullScreen(this); 
 
   context = new SimpleOpenNI(this, SimpleOpenNI.RUN_MODE_MULTI_THREADED);
@@ -105,9 +115,15 @@ void setup()
   mouseInfluenceSize *= mouseInfluenceSize; 
   mouseTearSize *= mouseTearSize;
 
+
   // create the curtain
   createCurtain();
+
+  //set default curtains behavior
+  particleDrower = new DefaultParticleDrower();
 }
+
+
 void createCurtain () {
   // We use an ArrayList instead of an array so we could add or remove particles at will.
   // not that it isn't possible using an array, it's just more convenient this way
@@ -153,16 +169,12 @@ void draw()
   // draw depthImageMap
   image(context.depthImage(), 0, 0, scrWidth, scrHeight);
 
-
-
   context.getUsers(users);
-
 
   // draw the skeleton if it's available
   if (users.size()>0 && context.isTrackingSkeleton(users.get(0)) )
     drawSkeleton(users.get(0));
 
-  // background(0);
   // Move origin to center of the screen.
   translate(width/2, height/2);
 
@@ -183,14 +195,14 @@ void draw()
     for (int x = 0; x < 3; x++) {
       for (int i = 0; i < particles.size(); i++) {
         Particle particle = (Particle) particles.get(i);
-        particle.solveConstraints();
+        particleDrower.solveConstraints(particle);
       }
     }
 
     // update each particle's position
     for (int i = 0; i < particles.size(); i++) {
       Particle particle = (Particle) particles.get(i);
-      particle.updatePhysics(fixedDeltaTimeSeconds); // the physics works in seconds, so fixedDeltaTime is divided by 1000
+      particleDrower.updatePhysics(particle, fixedDeltaTimeSeconds); // the physics works in seconds, so fixedDeltaTime is divided by 1000
     }
   }
 
@@ -201,8 +213,8 @@ void draw()
   strokeWeight(1);
   for (int i = 0; i < particles.size(); i++) {
     Particle particle = (Particle) particles.get(i);
-    particle.updateInteractions();   
-    particle.draw();
+    particleDrower.updateInteractions(particle);   
+    particleDrower.draw(particle);
   }
 
   if (frameCount % 30 == 0)
@@ -222,10 +234,10 @@ void keyPressed() {
   // enter fullscreen mode
   if ((key == 'f') || (key == 'F'))
     toggleFullScreen();
-  if ((key == 's') || (key == 'S'))
-    saveUser();
-  if ((key == 'l') || (key == 'L'))
-    loadUser();
+  if ( (key == '1') &&  !(particleDrower instanceof DefaultParticleDrower) )
+    particleDrower = new DefaultParticleDrower();
+  if (key == '2' &&  !(particleDrower instanceof HardParticleDrower) )
+    particleDrower = new HardParticleDrower();
   switch(key)
   {
   case 'e':
@@ -287,8 +299,8 @@ void drawSkeleton(int userId)
   if (rightHand == null) 
     rightHand = new HandPoint();
 
-    strokeWeight(10);
-    stroke(255, 0, 0);
+  strokeWeight(10);
+  stroke(255, 0, 0);
 
   if (context.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_LEFT_HAND, jointPos)) {
     position.set(jointPos.getPosition().getX(), jointPos.getPosition().getY(), jointPos.getPosition().getZ());
@@ -297,8 +309,8 @@ void drawSkeleton(int userId)
     handPoints.add(leftHand);
     point((int)screenPos.x*scrWidth/640, (int)screenPos.y*scrHeight/480);
   }
-  
-  
+
+
   if (context.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_RIGHT_HAND, jointPos)) {
     position.set(jointPos.getPosition().getX(), jointPos.getPosition().getY(), jointPos.getPosition().getZ());
     context.convertRealWorldToProjective(position, screenPos);
@@ -306,7 +318,7 @@ void drawSkeleton(int userId)
     handPoints.add(rightHand);
     point((int)screenPos.x*scrWidth/640, (int)screenPos.y*scrHeight/480);
   }
-  
+
   // to get the 3d joint data
   /*
   PVector jointPos = new PVector();
