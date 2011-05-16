@@ -32,14 +32,14 @@ class Link {
     
     drawThis = drawMe;
   }
-  
+ /* 
   int sign(float val){
     if (val<0) 
       return -1; 
     if (val>0) return 1;
     return 0;  
   }
-  
+ */ 
   void constraintSolve () {
     // calculate the distance between the two particles
     PVector delta = PVector.sub(p1.position, p2.position);

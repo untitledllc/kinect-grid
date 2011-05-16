@@ -19,6 +19,8 @@ ArrayList particles;
 float mouseInfluenceSize = 20; 
 // minimum distance for tearing when user is right clicking
 float mouseTearSize = 8;
+boolean useMouse = false;
+boolean drawDepthImage = false;
 
 // force of gravity is really 9.8, but because of scaling, we use 9.8 * 40 (392)
 // (9.8 is too small for a 1 second timestep)
@@ -32,7 +34,7 @@ final int curtainWidth = 24*k;
 final int yStart = 50; // where will the curtain start on the y axis?
 final float restingDistances = 30/k;
 final float stiffnesses = 1.5;
-final int curtainTearSensitivity = 100; // distance the particles have to go before ripping
+
 final int maxLenth = 10;
 final int scrWidth = 800;
 final int scrHeight = 600;
@@ -43,6 +45,10 @@ PVector screenPos = new PVector();
 ArrayList<HandPoint> handPoints = new ArrayList<HandPoint>();
 HandPoint leftHand;
 HandPoint rightHand;
+HandPoint mousePoint;
+
+PImage depthImage;
+int frameN = 0;
 
 XnSkeletonJointPosition jointPos;// = new XnSkeletonJointPosition();
 
@@ -99,11 +105,12 @@ void setup()
   context.enableUser(SimpleOpenNI.SKEL_PROFILE_ALL);
 
   background(200, 0, 0);
+  strokeWeight(3);
+  stroke(255);
 
-  strokeWeight(1);
+
   //smooth();
 
-  //size(context.depthWidth(), context.depthHeight()); 
   // Processing's default renderer is Java2D
   // but we instead use P2D, because it is a lot faster (about 2-3 times faster for me)
   size(scrWidth, scrHeight, P2D);
@@ -121,6 +128,7 @@ void setup()
 
   //set default curtains behavior
   particleDrower = new DefaultParticleDrower();
+  //particleDrower = new SlimyParticleDrower();
 }
 
 
@@ -167,13 +175,28 @@ void draw()
   context.update();
 
   // draw depthImageMap
-  image(context.depthImage(), 0, 0, scrWidth, scrHeight);
+  if (drawDepthImage) {
+    image(context.depthImage(), 0, 0, scrWidth, scrHeight);
+  }
+  else {
+    background(0);
+  }
 
   context.getUsers(users);
 
   // draw the skeleton if it's available
   if (users.size()>0 && context.isTrackingSkeleton(users.get(0)) )
     drawSkeleton(users.get(0));
+
+  if ( useMouse) {
+    handPoints.clear();
+    if (mousePoint == null)
+      mousePoint = new HandPoint();
+    //println("Mouse xy: " + mouseX + ", " + mouseY );
+    mousePoint.nextPos(mouseX, mouseY);
+    handPoints.add(mousePoint);
+    //point(mouseX, mouseY);
+  }
 
   // Move origin to center of the screen.
   translate(width/2, height/2);
@@ -192,7 +215,7 @@ void draw()
   // update physics
   for (int iteration = 1; iteration <= timeStepAmt; iteration++) {
     // solve the constraints 3 times.
-    for (int x = 0; x < 3; x++) {
+    for (int x = 0; x < 4; x++) {
       for (int i = 0; i < particles.size(); i++) {
         Particle particle = (Particle) particles.get(i);
         particleDrower.solveConstraints(particle);
@@ -210,11 +233,15 @@ void draw()
   // we use a separate loop for drawing so points and their links don't get drawn more than once
   // (rendering can be a major resource hog if not done efficiently)
   // also, interactions (mouse dragging) is applied
-  strokeWeight(1);
   for (int i = 0; i < particles.size(); i++) {
     Particle particle = (Particle) particles.get(i);
-    particleDrower.updateInteractions(particle);   
-    particleDrower.draw(particle);
+    if (particle.links.size() > 0) {
+      particleDrower.updateInteractions(particle);   
+      particleDrower.draw(particle);
+    }
+    else {
+      particles.remove(i);
+    }
   }
 
   if (frameCount % 30 == 0)
@@ -222,6 +249,8 @@ void draw()
 
   //  if (millis() < instructionLength)
   //    drawInstructions();
+  frameN++;
+  if (frameN > 5) frameN = 0;
 }
 
 
@@ -234,10 +263,22 @@ void keyPressed() {
   // enter fullscreen mode
   if ((key == 'f') || (key == 'F'))
     toggleFullScreen();
-  if ( (key == '1') &&  !(particleDrower instanceof DefaultParticleDrower) )
-    particleDrower = new DefaultParticleDrower();
-  if (key == '2' &&  !(particleDrower instanceof HardParticleDrower) )
+
+  if (key == '1' &&  !(particleDrower instanceof HardParticleDrower) )
     particleDrower = new HardParticleDrower();
+  if (key == '2' &&  !(particleDrower instanceof SlimyParticleDrower) )
+    particleDrower = new SlimyParticleDrower();
+  if (key == '3' &&  !(particleDrower instanceof DefaultParticleDrower) )
+    particleDrower = new DefaultParticleDrower();
+  if (key == '4' &&  !(particleDrower instanceof RaggyParticleDrower) )
+    particleDrower = new RaggyParticleDrower();
+
+
+  if ((key == 'm') || (key == 'M'))
+    toggleMouse();
+  if ((key == 'i') || (key == 'I'))  
+    toggleImage();
+
   switch(key)
   {
   case 'e':
@@ -256,6 +297,7 @@ void toggleFullScreen () {
 
   else {
     fs.enter();
+    fs.setResolution(800, 600);
     //size(scrWidth, scrHeight);
   }
 }
@@ -265,6 +307,16 @@ void toggleGravity () {
     gravity = 0;
   else
     gravity = 392;
+}
+
+void toggleMouse() {
+  useMouse = !useMouse;
+  println("useMouse: " + useMouse);
+}
+
+void toggleImage() {
+  drawDepthImage = !drawDepthImage;
+  println("drawDepthImage: " + drawDepthImage);
 }
 
 void saveUser() {
@@ -302,54 +354,22 @@ void drawSkeleton(int userId)
   strokeWeight(10);
   stroke(255, 0, 0);
 
-  if (context.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_LEFT_HAND, jointPos)) {
+  if (context.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_LEFT_HAND, jointPos) && !useMouse) {
     position.set(jointPos.getPosition().getX(), jointPos.getPosition().getY(), jointPos.getPosition().getZ());
     context.convertRealWorldToProjective(position, screenPos);
-    leftHand.nextPos(new PVector((int)screenPos.x*scrWidth/640, (int)screenPos.y*scrHeight/480));
+    leftHand.nextPos((int)screenPos.x*scrWidth/640, (int)screenPos.y*scrHeight/480);
     handPoints.add(leftHand);
     point((int)screenPos.x*scrWidth/640, (int)screenPos.y*scrHeight/480);
   }
 
 
-  if (context.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_RIGHT_HAND, jointPos)) {
+  if (context.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_RIGHT_HAND, jointPos)  && !useMouse) {
     position.set(jointPos.getPosition().getX(), jointPos.getPosition().getY(), jointPos.getPosition().getZ());
     context.convertRealWorldToProjective(position, screenPos);
-    rightHand.nextPos(new PVector((int)screenPos.x*scrWidth/640, (int)screenPos.y*scrHeight/480));
+    rightHand.nextPos((int)screenPos.x*scrWidth/640, (int)screenPos.y*scrHeight/480);
     handPoints.add(rightHand);
     point((int)screenPos.x*scrWidth/640, (int)screenPos.y*scrHeight/480);
   }
-
-  // to get the 3d joint data
-  /*
-  PVector jointPos = new PVector();
-   context.getJointPositionSkeleton(userId,SimpleOpenNI.SKEL_NECK,jointPos);
-   println(jointPos);
-   */
-  /*  
-   context.drawLimb(userId, SimpleOpenNI.SKEL_HEAD, SimpleOpenNI.SKEL_NECK);
-   
-   context.drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_LEFT_SHOULDER);
-   context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, SimpleOpenNI.SKEL_LEFT_ELBOW);
-   context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_ELBOW, SimpleOpenNI.SKEL_LEFT_HAND);
-   
-   context.drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_RIGHT_SHOULDER);
-   context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, SimpleOpenNI.SKEL_RIGHT_ELBOW);
-   context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_ELBOW, SimpleOpenNI.SKEL_RIGHT_HAND);
-   */
-
-  /*
-  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, SimpleOpenNI.SKEL_TORSO);
-   context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, SimpleOpenNI.SKEL_TORSO);
-   
-   context.drawLimb(userId, SimpleOpenNI.SKEL_TORSO, SimpleOpenNI.SKEL_LEFT_HIP);
-   context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_HIP, SimpleOpenNI.SKEL_LEFT_KNEE);
-   context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_KNEE, SimpleOpenNI.SKEL_LEFT_FOOT);
-   
-   context.drawLimb(userId, SimpleOpenNI.SKEL_TORSO, SimpleOpenNI.SKEL_RIGHT_HIP);
-   context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_HIP, SimpleOpenNI.SKEL_RIGHT_KNEE);
-   context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_KNEE, SimpleOpenNI.SKEL_RIGHT_FOOT);  
-   
-   */
 }
 
 // -----------------------------------------------------------------
@@ -416,5 +436,12 @@ void onStartPose(String pose, int userId)
 void onEndPose(String pose, int userId)
 {
   println("onEndPose - userId: " + userId + ", pose: " + pose);
+}
+
+int sign(float val) {
+  if (val<0) 
+    return -1; 
+  if (val>0) return 1;
+  return 0;
 }
 
