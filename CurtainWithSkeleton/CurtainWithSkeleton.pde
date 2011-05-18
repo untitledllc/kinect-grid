@@ -78,7 +78,7 @@ FullScreen fs;
 
 
 //////////////////ParticleDrower interface 
-public static interface ParticleDrower {
+public interface ParticleDrower {
   void updatePhysics(Particle particle, float timeStep);
   void updateInteractions(Particle particle);
   void solveConstraints(Particle particle);
@@ -90,10 +90,16 @@ private ParticleDrower particleDrower;// = new DefaultParticleDrower();
 ///////////////////////// Setup //////////////////
 void setup()
 {
+  // Processing's default renderer is Java2D
+  // but we instead use P2D, because it is a lot faster (about 2-3 times faster for me)
+  size(scrWidth, scrHeight, P2D);
+
   fs = new FullScreen(this); 
 
   context = new SimpleOpenNI(this, SimpleOpenNI.RUN_MODE_MULTI_THREADED);
 
+ // throw new Exception();
+  
   jointPos = new XnSkeletonJointPosition();
   users = new IntVector();
 
@@ -107,9 +113,6 @@ void setup()
 
   //smooth();
 
-  // Processing's default renderer is Java2D
-  // but we instead use P2D, because it is a lot faster (about 2-3 times faster for me)
-  size(scrWidth, scrHeight, P2D);
 
   previousTime = millis();
   currentTime = previousTime;
