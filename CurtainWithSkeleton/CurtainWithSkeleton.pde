@@ -23,6 +23,9 @@ boolean useMouse = false;
 boolean drawDepthImage = false;
 boolean showFR = false;
 
+//zero level for depth. It initialized on calibration
+float initialZ;
+
 // force of gravity is really 9.8, but because of scaling, we use 9.8 * 40 (392)
 // (9.8 is too small for a 1 second timestep)
 float gravity = 0; 
@@ -49,7 +52,7 @@ HandPoint rightHand;
 HandPoint mousePoint;
 
 PImage depthImage;
-int frameN = 0;
+//int frameN = 0;
 
 XnSkeletonJointPosition jointPos;// = new XnSkeletonJointPosition();
 
@@ -78,7 +81,7 @@ FullScreen fs;
 
 
 //////////////////ParticleDrower interface 
-public static interface ParticleDrower {
+public interface ParticleDrower {
   void updatePhysics(Particle particle, float timeStep);
   void updateInteractions(Particle particle);
   void solveConstraints(Particle particle);
@@ -90,9 +93,16 @@ private ParticleDrower particleDrower;// = new DefaultParticleDrower();
 ///////////////////////// Setup //////////////////
 void setup()
 {
+  // Processing's default renderer is Java2D
+  // but we instead use P2D, because it is a lot faster (about 2-3 times faster for me)
+  size(scrWidth, scrHeight, P3D);
+  noStroke();
+
   fs = new FullScreen(this); 
 
   context = new SimpleOpenNI(this, SimpleOpenNI.RUN_MODE_MULTI_THREADED);
+
+  // throw new Exception();
 
   jointPos = new XnSkeletonJointPosition();
   users = new IntVector();
@@ -107,9 +117,6 @@ void setup()
 
   //smooth();
 
-  // Processing's default renderer is Java2D
-  // but we instead use P2D, because it is a lot faster (about 2-3 times faster for me)
-  size(scrWidth, scrHeight, P2D);
 
   previousTime = millis();
   currentTime = previousTime;
@@ -123,8 +130,7 @@ void setup()
   createCurtain();
 
   //set default curtains behavior
-  particleDrower = new DefaultParticleDrower();
-  //particleDrower = new SlimyParticleDrower();
+  particleDrower = new DeepParticleDrower();
 }
 
 
@@ -167,7 +173,7 @@ void createCurtain () {
 
 void draw()
 {
-  
+
   strokeWeight(3);
   stroke(255);
 
@@ -185,7 +191,7 @@ void draw()
   context.getUsers(users);
 
   // draw the skeleton if it's available
-  if (users.size()>0 && context.isTrackingSkeleton(users.get(0)) )
+  if (!useMouse && users.size()>0 && context.isTrackingSkeleton(users.get(0)) )
     drawSkeleton(users.get(0));
 
   if ( useMouse) {
@@ -193,7 +199,7 @@ void draw()
     if (mousePoint == null)
       mousePoint = new HandPoint();
     //println("Mouse xy: " + mouseX + ", " + mouseY );
-    mousePoint.nextPos(mouseX, mouseY);
+    mousePoint.nextPos(mouseX, mouseY, 0);
     handPoints.add(mousePoint);
     //point(mouseX, mouseY);
   }
@@ -252,10 +258,49 @@ void draw()
 
   //  if (millis() < instructionLength)
   //    drawInstructions();
-  frameN++;
-  if (frameN > 5) frameN = 0;
+  //frameN++;
+ // if (frameN > 5) frameN = 0;
 }
 
+// draw the skeleton with the selected joints
+void drawSkeleton(int userId)
+{
+  handPoints.clear();
+  if (leftHand == null) 
+    leftHand = new HandPoint();
+
+  if (rightHand == null) 
+    rightHand = new HandPoint();
+
+  strokeWeight(10);
+  stroke(255, 0, 0);
+
+  if (context.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_LEFT_HAND, jointPos) && !useMouse) {
+    position.set(jointPos.getPosition().getX(), jointPos.getPosition().getY(), jointPos.getPosition().getZ());
+    context.convertRealWorldToProjective(position, screenPos);
+
+    //set initial depth level
+    if (initialZ == 0){
+      initialZ = position.z;
+      println("initialZ: " + initialZ); 
+    }
+    
+    leftHand.nextPos(screenPos.x*scrWidth/640, screenPos.y*scrHeight/480, position.z - initialZ);
+    handPoints.add(leftHand);
+    point((int)screenPos.x*scrWidth/640, (int)screenPos.y*scrHeight/480, 0);
+    //println("Left Hand: " + position.x + ", " + position.y + ", " +  position.z);
+      
+  }
+
+
+  if (context.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_RIGHT_HAND, jointPos)  && !useMouse) {
+    position.set(jointPos.getPosition().getX(), jointPos.getPosition().getY(), jointPos.getPosition().getZ());
+    context.convertRealWorldToProjective(position, screenPos);
+    rightHand.nextPos(screenPos.x*scrWidth/640, screenPos.y*scrHeight/480, position.z - initialZ);
+    handPoints.add(rightHand);
+    point((int)screenPos.x*scrWidth/640, (int)screenPos.y*scrHeight/480, 0);
+  }
+}
 
 // Controls. The r key resets the curtain, g toggles gravity
 void keyPressed() {
@@ -278,6 +323,8 @@ void keyPressed() {
     particleDrower = new DefaultParticleDrower();
   if (key == '4' &&  !(particleDrower instanceof RaggyParticleDrower) )
     particleDrower = new RaggyParticleDrower();
+  if (key == '5' &&  !(particleDrower instanceof DeepParticleDrower) )
+    particleDrower = new DeepParticleDrower();
 
 
   if ((key == 'm') || (key == 'M'))
@@ -351,36 +398,7 @@ void loadUser() {
     println("ERROR loading calibration data for userId: " + 1);
 }
 
-// draw the skeleton with the selected joints
-void drawSkeleton(int userId)
-{
-  handPoints.clear();
-  if (leftHand == null) 
-    leftHand = new HandPoint();
 
-  if (rightHand == null) 
-    rightHand = new HandPoint();
-
-  strokeWeight(10);
-  stroke(255, 0, 0);
-
-  if (context.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_LEFT_HAND, jointPos) && !useMouse) {
-    position.set(jointPos.getPosition().getX(), jointPos.getPosition().getY(), jointPos.getPosition().getZ());
-    context.convertRealWorldToProjective(position, screenPos);
-    leftHand.nextPos((int)screenPos.x*scrWidth/640, (int)screenPos.y*scrHeight/480);
-    handPoints.add(leftHand);
-    point((int)screenPos.x*scrWidth/640, (int)screenPos.y*scrHeight/480);
-  }
-
-
-  if (context.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_RIGHT_HAND, jointPos)  && !useMouse) {
-    position.set(jointPos.getPosition().getX(), jointPos.getPosition().getY(), jointPos.getPosition().getZ());
-    context.convertRealWorldToProjective(position, screenPos);
-    rightHand.nextPos((int)screenPos.x*scrWidth/640, (int)screenPos.y*scrHeight/480);
-    handPoints.add(rightHand);
-    point((int)screenPos.x*scrWidth/640, (int)screenPos.y*scrHeight/480);
-  }
-}
 
 // -----------------------------------------------------------------
 // SimpleOpenNI events
@@ -416,10 +434,14 @@ void onEndCalibration(int userId, boolean successfull)
   { 
     println("  User calibrated !!!");
     context.startTrackingSkeleton(userId); 
-    if (context.saveCalibrationDataSkeleton(userId, 1))
+    if (context.saveCalibrationDataSkeleton(userId, userId))
       println("Calibration data saved for userId: " + userId); 
     else  
       println("ERROR saving calibration data for userId: " + userId);
+/*    if (context.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_LEFT_HAND, jointPos)) {
+      initialZ = jointPos.getPosition().getZ();
+      println("initialZ: " + initialZ); 
+    }*/
   } 
   else 
   { 
@@ -435,7 +457,7 @@ void onStartPose(String pose, int userId)
   println(" stop pose detection");
 
   context.stopPoseDetection(userId); 
-  if (context.loadCalibrationDataSkeleton(userId, 1)) {
+  if (context.loadCalibrationDataSkeleton(userId, userId)) {
     context.startTrackingSkeleton(userId); 
     println("Calibration data loaded for userId: " + userId);
   }

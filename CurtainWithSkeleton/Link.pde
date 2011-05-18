@@ -45,7 +45,7 @@ class Link {
     PVector delta = PVector.sub(p1.position, p2.position);
     //if (Math.abs(delta.x) > maxLenth) delta.x = sign(delta.x) * maxLenth;
     //if (Math.abs(delta.y) > maxLenth) delta.y = sign(delta.y) * maxLenth;
-    float d = sqrt(delta.x * delta.x + delta.y * delta.y);
+    float d = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
     //if (d > curtainTearSensitivity) d = curtainTearSensitivity;
     float difference = (restingDistance - d) / d;
     

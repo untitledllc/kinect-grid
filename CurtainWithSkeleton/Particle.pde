@@ -19,7 +19,7 @@ class Particle {
   Particle (PVector pos) {
     position = pos.get();
     lastPosition = pos.get();
-    acceleration = new PVector(0, 0);   
+    acceleration = new PVector(0, 0, 0);   
   }
 
   // attachTo can be used to create links between this particle and other particles
