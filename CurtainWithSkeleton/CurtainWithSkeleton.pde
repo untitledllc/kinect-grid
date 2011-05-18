@@ -21,6 +21,7 @@ float mouseInfluenceSize = 20;
 float mouseTearSize = 8;
 boolean useMouse = false;
 boolean drawDepthImage = false;
+boolean showFR = false;
 
 // force of gravity is really 9.8, but because of scaling, we use 9.8 * 40 (392)
 // (9.8 is too small for a 1 second timestep)
@@ -104,11 +105,6 @@ void setup()
   // enable skeleton generation for all joints
   context.enableUser(SimpleOpenNI.SKEL_PROFILE_ALL);
 
-  background(200, 0, 0);
-  strokeWeight(3);
-  stroke(255);
-
-
   //smooth();
 
   // Processing's default renderer is Java2D
@@ -171,6 +167,10 @@ void createCurtain () {
 
 void draw()
 {
+  
+  strokeWeight(3);
+  stroke(255);
+
   // update the cam
   context.update();
 
@@ -233,6 +233,9 @@ void draw()
   // we use a separate loop for drawing so points and their links don't get drawn more than once
   // (rendering can be a major resource hog if not done efficiently)
   // also, interactions (mouse dragging) is applied
+  strokeWeight(3);
+  stroke(255);
+
   for (int i = 0; i < particles.size(); i++) {
     Particle particle = (Particle) particles.get(i);
     if (particle.links.size() > 0) {
@@ -244,7 +247,7 @@ void draw()
     }
   }
 
-  if (frameCount % 30 == 0)
+  if (frameCount % 30 == 0 && showFR)
     println("Frame rate is " + frameRate);
 
   //  if (millis() < instructionLength)
@@ -263,6 +266,9 @@ void keyPressed() {
   // enter fullscreen mode
   if ((key == 'f') || (key == 'F'))
     toggleFullScreen();
+  if ((key == 'p') || (key == 'P'))
+    toggleShowFrameRate();
+
 
   if (key == '1' &&  !(particleDrower instanceof HardParticleDrower) )
     particleDrower = new HardParticleDrower();
@@ -314,6 +320,10 @@ void toggleMouse() {
   println("useMouse: " + useMouse);
 }
 
+void toggleShowFrameRate() {
+  showFR = !showFR;
+  println("Show Frame Rate: " + showFR);
+}
 void toggleImage() {
   drawDepthImage = !drawDepthImage;
   println("drawDepthImage: " + drawDepthImage);

@@ -128,8 +128,6 @@ class DefaultParticleDrower implements ParticleDrower {
 
 
   void draw (Particle particle) {
-    // draw the links and points
-    //stroke(255);
     if (particle.links.size() > 0) {
       for (int i = 0; i < particle.links.size(); i++) {
         Link currentLink = (Link) particle.links.get(i);
