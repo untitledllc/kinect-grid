@@ -238,7 +238,7 @@ void draw()
 
   for (int i = 0; i < particles.size(); i++) {
     Particle particle = (Particle) particles.get(i);
-    if (particle.links.size() > 0) {
+    if (particle.links.size() > 0 || i == 0) {
       particleDrower.updateInteractions(particle);   
       particleDrower.draw(particle);
     }

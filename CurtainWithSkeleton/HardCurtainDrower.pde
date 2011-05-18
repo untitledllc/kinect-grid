@@ -1,18 +1,4 @@
 class HardParticleDrower implements ParticleDrower {
-  /*  
-   private HardParticleDrower instance;
-   
-   private HardParticleDrower(){
-   };
-   
-   //Singleton implementation
-   public static synchronized HardParticleDrower getInstance(){
-   if (instance == null){
-   instance = new HardParticleDrower();
-   }
-   return instance;
-   }
-   */
 
   public HardParticleDrower() {
     println("HardParticleDrower initialization");
@@ -47,13 +33,14 @@ class HardParticleDrower implements ParticleDrower {
         prevY = curY;
       }
 
+      
       float distanceSquared = sq(curX-width/2 - particle.position.x) + sq(curY-height/2 - particle.position.y);
       int xDiff = curX - prevX;
       int yDiff = curY - prevY;
       //     if (Math.abs(xDiff) > maxLenth) xDiff = sign(xDiff) * maxLenth;
       //     if (Math.abs(yDiff) > maxLenth) yDiff = sign(yDiff) * maxLenth;
 
-      PVector addition = new PVector(xDiff, yDiff);
+      PVector addition = new PVector(0, yDiff/10);
       particle.position.add(addition);
     }
   }
@@ -67,9 +54,9 @@ class HardParticleDrower implements ParticleDrower {
         Link currentLink = (Link) particle.links.get(i);
         if (currentLink.drawThis) // some links are invisible
           line(particle.position.x, particle.position.y, currentLink.p2.position.x, currentLink.p2.position.y);
-      }
-      point(particle.position.x, particle.position.y);
+      }      
     }
+    point(particle.position.x, particle.position.y);
   }
 }
 
