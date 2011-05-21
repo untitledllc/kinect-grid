@@ -95,15 +95,24 @@ void setup()
 {
   // Processing's default renderer is Java2D
   // but we instead use P2D, because it is a lot faster (about 2-3 times faster for me)
+<<<<<<< HEAD
   size(scrWidth, scrHeight, P3D);
   noStroke();
+=======
+  size(scrWidth, scrHeight, P2D);
+>>>>>>> 3fe4b84d41e197a2864b4233810e5df295d63adf
 
   fs = new FullScreen(this); 
 
   context = new SimpleOpenNI(this, SimpleOpenNI.RUN_MODE_MULTI_THREADED);
 
+<<<<<<< HEAD
   // throw new Exception();
 
+=======
+ // throw new Exception();
+  
+>>>>>>> 3fe4b84d41e197a2864b4233810e5df295d63adf
   jointPos = new XnSkeletonJointPosition();
   users = new IntVector();
 
