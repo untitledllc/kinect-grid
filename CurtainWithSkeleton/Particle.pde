@@ -6,7 +6,7 @@ class Particle {
   PVector acceleration; 
 
   float mass = 10;
-  float damping = 300; // friction
+  float damping = 30; // friction
 
   // An ArrayList for links, so we can have as many links as we want to this particle :)
   ArrayList links = new ArrayList();

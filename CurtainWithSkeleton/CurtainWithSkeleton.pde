@@ -95,24 +95,14 @@ void setup()
 {
   // Processing's default renderer is Java2D
   // but we instead use P2D, because it is a lot faster (about 2-3 times faster for me)
-<<<<<<< HEAD
   size(scrWidth, scrHeight, P3D);
-  noStroke();
-=======
-  size(scrWidth, scrHeight, P2D);
->>>>>>> 3fe4b84d41e197a2864b4233810e5df295d63adf
 
   fs = new FullScreen(this); 
 
   context = new SimpleOpenNI(this, SimpleOpenNI.RUN_MODE_MULTI_THREADED);
 
-<<<<<<< HEAD
   // throw new Exception();
 
-=======
- // throw new Exception();
-  
->>>>>>> 3fe4b84d41e197a2864b4233810e5df295d63adf
   jointPos = new XnSkeletonJointPosition();
   users = new IntVector();
 
@@ -139,7 +129,7 @@ void setup()
   createCurtain();
 
   //set default curtains behavior
-  particleDrower = new DeepParticleDrower();
+  particleDrower = new HardParticleDrower();
 }
 
 
@@ -179,7 +169,6 @@ void createCurtain () {
   }
 }
 
-
 void draw()
 {
 
@@ -190,13 +179,14 @@ void draw()
   context.update();
 
   // draw depthImageMap
+  background(0);
   if (drawDepthImage) {
+    pushMatrix();
+    translate(0,0,-250);
     image(context.depthImage(), 0, 0, scrWidth, scrHeight);
+    popMatrix();
   }
-  else {
-    background(0);
-  }
-
+  
   context.getUsers(users);
 
   // draw the skeleton if it's available
@@ -328,12 +318,10 @@ void keyPressed() {
     particleDrower = new HardParticleDrower();
   if (key == '2' &&  !(particleDrower instanceof SlimyParticleDrower) )
     particleDrower = new SlimyParticleDrower();
-  if (key == '3' &&  !(particleDrower instanceof DefaultParticleDrower) )
+  if (key == '3' )//&&  !(particleDrower instanceof DefaultParticleDrower) )
     particleDrower = new DefaultParticleDrower();
   if (key == '4' &&  !(particleDrower instanceof RaggyParticleDrower) )
     particleDrower = new RaggyParticleDrower();
-  if (key == '5' &&  !(particleDrower instanceof DeepParticleDrower) )
-    particleDrower = new DeepParticleDrower();
 
 
   if ((key == 'm') || (key == 'M'))

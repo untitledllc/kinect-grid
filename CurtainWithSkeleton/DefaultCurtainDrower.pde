@@ -19,15 +19,15 @@ class DefaultParticleDrower implements ParticleDrower {
   };
 
 
-  //  float mass = 10;
-  //  float damping = 300; // friction
+    float mass = 10;
+    float damping = 10;  // friction
 
     // The update function is used to update the physics of the particle.
   // motion is applied, and links are drawn here
   void updatePhysics (Particle particle, float timeStep) { // timeStep should be in elapsed seconds (deltaTime)
     // gravity:
     // f(gravity) = m * g
-    PVector fg = new PVector(0, particle.mass * gravity);
+    PVector fg = new PVector(0, mass * gravity);
     this.applyForce(particle, fg);
 
     /* Verlet Integration, WAS using http://archive.gamedev.net/reference/programming/features/verlet/ 
@@ -35,7 +35,7 @@ class DefaultParticleDrower implements ParticleDrower {
     // velocity = position - lastPosition
     PVector velocity = PVector.sub(particle.position, particle.lastPosition);
     // apply damping: acceleration -= velocity * (damping/mass)
-    particle.acceleration.sub(PVector.mult(velocity, particle.damping/particle.mass)); 
+    particle.acceleration.sub(PVector.mult(velocity, damping/mass)); 
     // newPosition = position + velocity + 0.5 * acceleration * deltaTime * deltaTime
     PVector nextPos = PVector.add(PVector.add(particle.position, velocity), PVector.mult(PVector.mult(particle.acceleration, 0.5), timeStep * timeStep));
     // reset variables
@@ -53,7 +53,7 @@ class DefaultParticleDrower implements ParticleDrower {
     // acceleration = (1/mass) * force
     // or
     // acceleration = force / mass
-    particle.acceleration.add(PVector.div(PVector.mult(f, 1), particle.mass));
+    particle.acceleration.add(PVector.div(PVector.mult(f, 1), mass));
   }
 
   // here we tell each Link to solve constraints
@@ -63,9 +63,7 @@ class DefaultParticleDrower implements ParticleDrower {
 
       // calculate the distance between the two particles
       PVector delta = PVector.sub(currentLink.p1.position, currentLink.p2.position);
-      //if (Math.abs(delta.x) > maxLenth) delta.x = sign(delta.x) * maxLenth;
-      //if (Math.abs(delta.y) > maxLenth) delta.y = sign(delta.y) * maxLenth;
-      float d = sqrt(delta.x * delta.x + delta.y * delta.y);
+      float d = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
       float difference = 0;
       if (d !=0)
         difference = (currentLink.restingDistance - d) / d;
@@ -90,6 +88,10 @@ class DefaultParticleDrower implements ParticleDrower {
         particle.position.x = width/2-1;
       if (particle.position.x < -width/2+1)
         particle.position.x = -width/2+1;
+      if (particle.position.z > width/5-1)
+        particle.position.z = width/5-1;
+      if (particle.position.z < -width/5+1)
+        particle.position.z = -width/5+1;
     }
   }
 
@@ -98,18 +100,23 @@ class DefaultParticleDrower implements ParticleDrower {
     if (!particle.pinned) {
       int curX;
       int curY;
+      int curZ;
       int prevX;
       int prevY;
+      int prevZ;
       for (int idx = 0; idx < handPoints.size(); idx++) {
         curX = (int) handPoints.get(idx).getCurPos().x;
         curY = (int) handPoints.get(idx).getCurPos().y;
+        curZ = (int) handPoints.get(idx).getCurPos().z;
         if ( handPoints.get(idx).getPrevPos() != null) {
           prevX = (int) handPoints.get(idx).getPrevPos().x;
           prevY = (int) handPoints.get(idx).getPrevPos().y;
+          prevZ = (int) handPoints.get(idx).getPrevPos().z;
         }
         else {
           prevX = curX;
           prevY = curY;
+          prevZ = curZ;
         }
 
         float distanceSquared = sq(curX-width/2 - particle.position.x) + sq(curY-height/2 - particle.position.y);
@@ -119,8 +126,8 @@ class DefaultParticleDrower implements ParticleDrower {
 
           int xDiff = curX - prevX;
           int yDiff = curY - prevY;
-          PVector addition = new PVector(xDiff, yDiff);
-          particle.position.add(addition);
+          particle.position.add(new PVector(xDiff, yDiff, 0));
+          particle.position.z = curZ/2;
         }
       }
     }
@@ -132,9 +139,9 @@ class DefaultParticleDrower implements ParticleDrower {
       for (int i = 0; i < particle.links.size(); i++) {
         Link currentLink = (Link) particle.links.get(i);
         if (currentLink.drawThis) // some links are invisible
-          line(particle.position.x, particle.position.y, currentLink.p2.position.x, currentLink.p2.position.y);
+          line(particle.position.x, particle.position.y, particle.position.z, currentLink.p2.position.x, currentLink.p2.position.y, currentLink.p2.position.z);
       }
-      point(particle.position.x, particle.position.y);
+      point(particle.position.x, particle.position.y, particle.position.z);
     } 
   }
 }
